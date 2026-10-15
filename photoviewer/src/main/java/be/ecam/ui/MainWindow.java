@@ -18,7 +18,13 @@ public class MainWindow extends JFrame {
     private final ImagePanel imagePanel = new ImagePanel();
     private final StatusBar statusBar = new StatusBar();
     private final JList<Photo> photoList = new JList<>();
-    private final ListCellRenderer<Photo> photoListCellRenderer = new PhotoCellRenderer();
+    private static final int THUMBNAIL_SIZE = 120;
+    private static final int THUMBNAIL_CACHE_CAPACITY = 50;
+    // Thumbnail plus the 8px top and bottom border of PhotoCellRenderer.
+    private static final int PHOTO_CELL_HEIGHT = THUMBNAIL_SIZE + 2 * 8;
+
+    private final ListCellRenderer<Photo> photoListCellRenderer =
+            new PhotoCellRenderer(new PhotoCache(THUMBNAIL_CACHE_CAPACITY, THUMBNAIL_SIZE));
     private final DefaultListModel<Photo> listModel = new DefaultListModel<>();
 
     public MainWindow(PhotoSource photoSource) {
@@ -41,6 +47,11 @@ public class MainWindow extends JFrame {
 
         photoList.setModel(listModel);
         photoList.setCellRenderer(photoListCellRenderer);
+
+        // Without a fixed height, JList calls the renderer on every element to measure it,
+        // which loads every thumbnail and flushes the LRU cache when there are many photos.
+
+        photoList.setFixedCellHeight(PHOTO_CELL_HEIGHT);
         photoList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         photoList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
